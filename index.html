@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hollow Manor — Spooky UI</title>
+<style>
+  :root {
+    --bg: #0b0710;
+    --ink: #e9e2f2;
+    --muted: #8d819c;
+    --orange: #ff7a1a;
+    --purple: #8b5cf6;
+    --blood: #c1121f;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: Georgia, "Times New Roman", serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    cursor: none;
+  }
+  @media (hover: none) { body { cursor: auto; } .flash { display: none; } }
+
+  /* Flashlight: darkness everywhere except around the cursor */
+  .flash {
+    position: fixed; inset: 0; z-index: 50; pointer-events: none;
+    background: radial-gradient(circle 190px at var(--x, 50%) var(--y, 40%),
+      transparent 0%, rgba(5,2,9,.55) 55%, rgba(5,2,9,.93) 100%);
+    transition: background .1s;
+  }
+  .cursor {
+    position: fixed; z-index: 60; width: 14px; height: 14px; border-radius: 50%;
+    background: var(--orange); box-shadow: 0 0 18px 6px rgba(255,122,26,.6);
+    pointer-events: none; transform: translate(-50%,-50%);
+  }
+
+  /* Lightning flash */
+  .lightning { position: fixed; inset: 0; background: #fff; opacity: 0; z-index: 70; pointer-events: none; }
+  .lightning.on { animation: bolt .7s ease-out; }
+  @keyframes bolt { 0%{opacity:.0} 10%{opacity:.8} 20%{opacity:.1} 30%{opacity:.6} 100%{opacity:0} }
+
+  /* Moon + fog */
+  .moon {
+    position: fixed; top: 6vh; right: 8vw; width: clamp(80px, 12vw, 150px); aspect-ratio: 1;
+    border-radius: 50%; z-index: 0;
+    background: radial-gradient(circle at 35% 35%, #fffbe6, #e8d9a0 60%, #b9a766);
+    box-shadow: 0 0 80px 20px rgba(255,240,170,.25);
+  }
+  .fog { position: fixed; inset: auto 0 0 0; height: 40vh; z-index: 1; pointer-events: none; overflow: hidden; }
+  .fog::before, .fog::after {
+    content: ""; position: absolute; inset: 0 -50%;
+    background: radial-gradient(ellipse at 30% 100%, rgba(139,92,246,.22), transparent 60%),
+                radial-gradient(ellipse at 70% 100%, rgba(255,122,26,.12), transparent 60%);
+    animation: drift 24s linear infinite;
+  }
+  .fog::after { animation-duration: 38s; animation-direction: reverse; opacity: .7; }
+  @keyframes drift { to { transform: translateX(25%); } }
+
+  main { position: relative; z-index: 2; }
+  section { min-height: 100vh; display: grid; place-items: center; padding: 6rem 1.25rem; }
+
+  /* Hero */
+  .hero { text-align: center; }
+  .eyebrow { letter-spacing: .5em; text-transform: uppercase; color: var(--muted); font-size: .8rem; }
+  h1 {
+    font-size: clamp(3rem, 12vw, 9rem); line-height: .95; margin: 1rem 0 1.5rem;
+    color: var(--orange); letter-spacing: -.02em;
+    text-shadow: 0 0 20px rgba(255,122,26,.6), 0 0 60px rgba(255,122,26,.35);
+    animation: flicker 6s infinite;
+  }
+  h1 span { display: inline-block; }
+  h1 .glitch { animation: shake 3s infinite; }
+  @keyframes flicker {
+    0%,18%,22%,62%,64%,100% { opacity: 1; }
+    20%,63% { opacity: .35; }
+    21% { opacity: .9; }
+  }
+  @keyframes shake {
+    0%,92%,100% { transform: none; }
+    94% { transform: translate(-4px,2px) skewX(6deg); color: var(--blood); }
+    96% { transform: translate(5px,-2px) skewX(-6deg); }
+  }
+  .hero p { max-width: 36rem; margin: 0 auto 2.2rem; color: var(--muted); font-size: 1.15rem; line-height: 1.6; }
+
+  .btn {
+    position: relative; display: inline-block; padding: .95rem 2.2rem; border: 1px solid var(--orange);
+    color: var(--orange); background: transparent; font: inherit; letter-spacing: .2em; text-transform: uppercase;
+    text-decoration: none; overflow: hidden; transition: color .3s, box-shadow .3s;
+  }
+  .btn::before {
+    content: ""; position: absolute; inset: 100% 0 0 0; background: var(--orange); z-index: -1;
+    transition: inset .35s cubic-bezier(.7,0,.2,1);
+  }
+  .btn { z-index: 0; }
+  .btn:hover { color: var(--bg); box-shadow: 0 0 30px rgba(255,122,26,.6); }
+  .btn:hover::before { inset: 0; }
+
+  /* Ghosts */
+  .ghost {
+    position: fixed; z-index: 3; width: 56px; height: 68px; pointer-events: none; opacity: .75;
+    background: #f4efff; border-radius: 28px 28px 6px 6px;
+    clip-path: polygon(0 0,100% 0,100% 88%,83% 100%,66% 88%,50% 100%,33% 88%,16% 100%,0 88%);
+    filter: drop-shadow(0 0 14px rgba(200,180,255,.8));
+    animation: float var(--d, 14s) ease-in-out infinite;
+    left: var(--l); top: var(--t);
+  }
+  .ghost::before, .ghost::after {
+    content: ""; position: absolute; top: 24px; width: 9px; height: 13px; border-radius: 50%; background: #1a1124;
+  }
+  .ghost::before { left: 14px; } .ghost::after { right: 14px; }
+  @keyframes float {
+    0%,100% { transform: translate(0,0) rotate(-4deg); }
+    25% { transform: translate(60px,-40px) rotate(5deg); }
+    50% { transform: translate(-30px,-90px) rotate(-3deg); }
+    75% { transform: translate(-70px,-30px) rotate(6deg); }
+  }
+
+  /* Bats */
+  .bat { position: fixed; z-index: 4; font-size: 1.6rem; pointer-events: none; animation: fly var(--s, 12s) linear forwards; }
+  @keyframes fly {
+    from { transform: translate(-10vw, 0); }
+    50% { transform: translate(50vw, -12vh) scaleY(.7); }
+    to { transform: translate(115vw, 6vh); }
+  }
+
+  /* Cards */
+  .rooms { width: min(1100px, 100%); }
+  .rooms h2 { text-align: center; font-size: clamp(2rem, 6vw, 3.5rem); margin-bottom: 3rem; color: var(--purple); text-shadow: 0 0 25px rgba(139,92,246,.6); }
+  .grid { display: grid; gap: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+  .card {
+    position: relative; padding: 2rem 1.6rem; background: rgba(20,12,30,.8); border: 1px solid #2c1f3d;
+    transition: transform .4s, border-color .4s, box-shadow .4s;
+  }
+  .card .icon { font-size: 2.6rem; display: block; margin-bottom: 1rem; transition: transform .4s; }
+  .card h3 { margin-bottom: .6rem; font-size: 1.4rem; }
+  .card p { color: var(--muted); line-height: 1.55; }
+  .card .whisper {
+    position: absolute; left: 1.6rem; right: 1.6rem; bottom: .8rem; color: var(--blood);
+    font-style: italic; font-size: .85rem; opacity: 0; transform: translateY(8px); transition: .4s;
+  }
+  .card { padding-bottom: 3rem; }
+  .card:hover { transform: translateY(-8px) rotate(-1deg); border-color: var(--orange); box-shadow: 0 20px 50px rgba(255,122,26,.18); }
+  .card:hover .icon { transform: scale(1.3) rotate(-12deg); animation: wobble .5s 2; }
+  .card:hover .whisper { opacity: 1; transform: none; }
+  @keyframes wobble { 50% { transform: scale(1.3) rotate(12deg); } }
+
+  /* Pumpkin finale */
+  .finale { text-align: center; }
+  .pumpkin {
+    font-size: clamp(6rem, 22vw, 14rem); background: none; border: 0; cursor: pointer; line-height: 1;
+    filter: drop-shadow(0 0 40px rgba(255,122,26,.7)); transition: transform .2s;
+    animation: breathe 3s ease-in-out infinite;
+  }
+  .pumpkin:hover { transform: scale(1.08); }
+  @keyframes breathe { 50% { filter: drop-shadow(0 0 70px rgba(255,122,26,1)); } }
+  .finale p { color: var(--muted); margin-top: 1rem; }
+  .count { color: var(--orange); }
+
+  /* Jump scare */
+  .scare {
+    position: fixed; inset: 0; z-index: 80; display: none; place-items: center; background: #000; text-align: center;
+  }
+  .scare.on { display: grid; animation: shakeAll .12s infinite; }
+  .scare b { font-size: clamp(5rem, 30vw, 22rem); display: block; }
+  .scare span { color: var(--blood); font-size: clamp(1.5rem, 6vw, 3rem); letter-spacing: .3em; }
+  @keyframes shakeAll { 0%{transform:translate(0)} 25%{transform:translate(-8px,6px)} 50%{transform:translate(8px,-6px)} 75%{transform:translate(-6px,-8px)} }
+
+  .hint { position: fixed; z-index: 55; left: 1rem; bottom: 1rem; color: var(--muted); font-size: .75rem; letter-spacing: .15em; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+  <div class="moon"></div>
+  <div class="fog"></div>
+  <div class="ghost" style="--l:12vw;--t:55vh;--d:15s"></div>
+  <div class="ghost" style="--l:70vw;--t:65vh;--d:19s"></div>
+  <div class="ghost" style="--l:42vw;--t:30vh;--d:23s"></div>
+
+  <main>
+    <section class="hero">
+      <div>
+        <div class="eyebrow">Est. 1666 · Open all night</div>
+        <h1><span>Hollow</span> <span class="glitch">Manor</span></h1>
+        <p>Something is awake in the east wing. Move your light slowly, and whatever you do, don't look behind you.</p>
+        <a class="btn" href="#rooms">Enter if you dare</a>
+      </div>
+    </section>
+
+    <section id="rooms">
+      <div class="rooms">
+        <h2>Choose your room</h2>
+        <div class="grid">
+          <article class="card"><span class="icon">🕸️</span><h3>The Attic</h3><p>Dust, cobwebs, and a rocking chair that won't stay still.</p><div class="whisper">…it rocks when you look away.</div></article>
+          <article class="card"><span class="icon">🪦</span><h3>The Crypt</h3><p>Cold stone stairs lead down. The echoes lead back up.</p><div class="whisper">…there are more steps than before.</div></article>
+          <article class="card"><span class="icon">🕯️</span><h3>The Library</h3><p>Every book is open to a page with your name on it.</p><div class="whisper">…the candles blew out on their own.</div></article>
+          <article class="card"><span class="icon">🪞</span><h3>The Ballroom</h3><p>A waltz plays. The mirrors show one more dancer than the room does.</p><div class="whisper">…it's waiting for a partner.</div></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="finale">
+      <div>
+        <button class="pumpkin" id="pumpkin" aria-label="Pumpkin. Click it. Go on.">🎃</button>
+        <p>Click it <span class="count" id="count">3</span> more times. Nothing will happen.</p>
+      </div>
+    </section>
+  </main>
+
+  <div class="flash" id="flash"></div>
+  <div class="cursor" id="cursor"></div>
+  <div class="lightning" id="lightning"></div>
+  <div class="scare" id="scare" role="alert"><div><b>👻</b><span>BOO.</span></div></div>
+  <div class="hint">Move your light · click the pumpkin · press L for lightning</div>
+
+<script>
+  const flash = document.getElementById('flash');
+  const cursor = document.getElementById('cursor');
+  const lightning = document.getElementById('lightning');
+  const scare = document.getElementById('scare');
+  const count = document.getElementById('count');
+
+  // Flashlight follows the pointer
+  addEventListener('pointermove', e => {
+    flash.style.setProperty('--x', e.clientX + 'px');
+    flash.style.setProperty('--y', e.clientY + 'px');
+    cursor.style.left = e.clientX + 'px';
+    cursor.style.top = e.clientY + 'px';
+  });
+
+  // Lightning: random, or press L
+  function strike() {
+    lightning.classList.remove('on');
+    void lightning.offsetWidth;
+    lightning.classList.add('on');
+  }
+  addEventListener('keydown', e => { if (e.key.toLowerCase() === 'l') strike(); });
+  (function loop() { setTimeout(() => { strike(); loop(); }, 9000 + Math.random() * 15000); })();
+
+  // Bats cross the sky now and then
+  function bat() {
+    const b = document.createElement('div');
+    b.className = 'bat';
+    b.textContent = '🦇';
+    b.style.top = 5 + Math.random() * 40 + 'vh';
+    b.style.setProperty('--s', 7 + Math.random() * 6 + 's');
+    document.body.appendChild(b);
+    b.addEventListener('animationend', () => b.remove());
+  }
+  setInterval(bat, 4500);
+  bat();
+
+  // Pumpkin: nothing will happen
+  let left = 3;
+  document.getElementById('pumpkin').addEventListener('click', () => {
+    left--;
+    if (left > 0) { count.textContent = left; return; }
+    strike();
+    scare.classList.add('on');
+    setTimeout(() => {
+      scare.classList.remove('on');
+      left = 3; count.textContent = left;
+    }, 1400);
+  });
+</script>
+</body>
+</html>
